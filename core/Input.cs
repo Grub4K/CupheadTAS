@@ -24,6 +24,10 @@ namespace TAS {
 		public float Angle { get; set; }
 		public bool Slowdown { get; set; }
 		public Input() { }
+        public Input(int frames, Actions actions) {
+            Frames = frames;
+            Actions = actions;
+        }
 		public Input(int number, string line) {
 			Line = number;
 
