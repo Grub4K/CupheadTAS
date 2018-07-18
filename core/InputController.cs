@@ -9,10 +9,10 @@ namespace TAS {
         private Actions Current;
         private int framesToNext;
 		public InputRecorder() {
-            Start();
+            Reset();
         }
 
-        public void Start() {
+        public void Reset() {
             inputs.Clear();
             Current = Actions.None;
             framesToNext = 0;
