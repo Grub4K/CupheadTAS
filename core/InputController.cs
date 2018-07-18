@@ -9,11 +9,19 @@ namespace TAS {
         private Actions Current;
         private int framesToNext;
 		public InputRecorder() {
+            Start();
+        }
+
+        public void Start() {
+            inputs.Clear();
             Current = Actions.None;
             framesToNext = 0;
         }
 
         public bool WriteFile(string fileName) {
+            if (framesToNext != 0) {
+                inputs.Add(new Input(framesToNext, Current));
+            }
             try {
         		using (FileStream fs = new FileStream(fileName, FileMode.Create, FileAccess.Write)) {
                     using (StreamWriter writer = new StreamWriter(fs, Encoding.ASCII)){
@@ -30,8 +38,9 @@ namespace TAS {
 
         public void Add(Actions toAdd) {
             if (toAdd != Current) {
-                Input input = new Input(framesToNext, Current);
-                inputs.Add(input);
+                if (framesToNext != 0) {
+                    inputs.Add(new Input(framesToNext, Current));
+                }
                 framesToNext = 1;
                 Current = toAdd;
             } else {
@@ -42,51 +51,67 @@ namespace TAS {
 
     class InputPlayer {
 		private List<Input> inputs = new List<Input>();
-        public Input Current {
-            get {
-                Input Previous = Current;
-                Current = inputs?[++inputIndex];
-                return Previous;
-            }
-            set {
-                Current = value;
-            }
-        }
         private int inputIndex, framesToNext;
 		public InputPlayer() {
-            inputIndex = 0;
+            Reset();
         }
 
-		public bool ReadFile(string fileName) {
+        public void Reset() {
+            framesToNext = 1;
+            inputIndex = -1;
+        }
+
+        public Input Current {
+            get {
+                return inputs[inputIndex];
+            }
+        }
+
+        public bool MoveNext() {
+            if (--framesToNext == 0 || inputs[inputIndex].Slowdown) {
+                if (++inputIndex == inputs.Count) {
+                    return false;
+                }
+                framesToNext = inputs[inputIndex].Frames;
+            }
+            return true;
+        }
+
+        public void Load(string fileName) {
+            int trycount = 5;
+            while (!ReadFile(fileName) && --trycount >= 0) {
+                System.Threading.Thread.Sleep(50);
+            }
+
+            Reset();
+        }
+
+		private bool ReadFile(string fileName) {
 			try {
 				inputs.Clear();
 				if (!File.Exists(fileName)) { return false; }
 
-				int lines = 0;
 				using (StreamReader sr = new StreamReader(fileName)) {
 					while (!sr.EndOfStream) {
 						string line = sr.ReadLine();
 
-						if (line.IndexOf("Read", System.StringComparison.OrdinalIgnoreCase) == 0 && line.Length > 5) {
-							ReadFile(line.Substring(5), ++lines);
-							lines--;
+						if (line.StartsWith("Read") && line.Length > 5) {
+							ReadFile(line.Substring(5), relativePath : "");
 						}
 
-						Input input = new Input(++lines, line);
+						Input input = new Input(line);
 						if (input.Frames != 0) {
 							inputs.Add(input);
 						}
 					}
 				}
-                Current = inputs?[0];
-                framesToNext = Current.Equals(null)? Current.Frames : 0;
 				return true;
 			} catch {
 				return false;
 			}
 		}
 
-		private void ReadFile(string extraFile, int lines, string relativePath = "") {
+		private void ReadFile(string extraFile, string relativePath) {
 			int index = extraFile.IndexOf(',');
 			string fileName = index > 0 ? extraFile.Substring(0, index) : extraFile;
             int relativePathIndex = fileName.LastIndexOf('\\') + 1;
@@ -118,11 +143,11 @@ namespace TAS {
 					if (subLine < startLine) { continue; }
 					if (subLine > linesToRead) { break; }
 
-					if (line.IndexOf("Read", System.StringComparison.OrdinalIgnoreCase) == 0 && line.Length > 5) {
-						ReadFile(line.Substring(5), lines, relativePath);
+					if (line.StartsWith("Read") && line.Length > 5) {
+						ReadFile(line.Substring(5), relativePath);
 					}
 
-					Input input = new Input(lines, line);
+					Input input = new Input(line);
 					if (input.Frames != 0) {
 						inputs.Add(input);
 					}

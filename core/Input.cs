@@ -18,7 +18,6 @@ namespace TAS {
 		Analog = 2048
 	}
 	public class Input {
-		public int Line { get; set; }
 		public int Frames { get; set; }
 		public Actions Actions { get; set; }
 		public float Angle { get; set; }
@@ -28,9 +27,7 @@ namespace TAS {
             Frames = frames;
             Actions = actions;
         }
-		public Input(int number, string line) {
-			Line = number;
-
+		public Input(string line) {
 			int index = 0;
 			Frames = ReadFrames(line, ref index);
 			if (Frames == 0) {
@@ -164,7 +161,7 @@ namespace TAS {
 			return (Actions & actions) != 0;
 		}
 		public override string ToString() {
-			return Frames == 0 ? "" : Frames.ToString().PadLeft(4, ' ') + ActionsToString();
+			return Slowdown? "***" + Frames.ToString() : Frames == 0 ? "" : Frames.ToString().PadLeft(4, ' ') + ActionsToString();
 		}
 		public string ActionsToString() {
 			StringBuilder sb = new StringBuilder();
