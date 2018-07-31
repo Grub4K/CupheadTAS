@@ -154,21 +154,21 @@ namespace TAS {
                         // Tokenize line
                         string[] options = line.Split(new char[]{','}, count : 4);
                         // Parse line and setup values
-                        string extraFile = options.ElementAtOrDefault(1);
+                        fileName = options.ElementAtOrDefault(1);
                         // Get relative path from full filename
                         int indexPath = fileName.LastIndexOf("\\");
                         if (indexPath != -1){
-                            relativePath += extraFile.Remove(indexPath);
-                            extraFile = extraFile.Substring(0, ++indexPath);
+                            relativePath += fileName.Remove(++indexPath);
+                            fileName = fileName.Substring(indexPath);
                         }
                         // Try parsing as int, fallback to 0 if fail
-                        int.TryParse(options.ElementAtOrDefault(2), out startLine);
+                        int.TryParse(options.ElementAtOrDefault(2), out int newStartLine);
                         // Try parsing as int, fallback to MaxValue
-                        if (!int.TryParse(options.ElementAtOrDefault(3), out lastLine)) {
-                            lastLine = int.MaxValue;
+                        if (!int.TryParse(options.ElementAtOrDefault(3), out int newLastLine)) {
+                            newLastLine = int.MaxValue;
                         }
                         // Recursive call of file reading
-        				ReadFile(extraFile, relativePath, startLine, lastLine);
+        				ReadFile(fileName, relativePath, newStartLine, newLastLine);
         			} else {
                         Input input = new Input(line);
                         if (input.Frames != 0) {

@@ -34,7 +34,7 @@ namespace TAS {
                         Mode = Modes.Advance;
                         isStopped = false;
                     } else {
-                        Mode =  Modes.AdvanceFrame;
+                        Mode = Modes.AdvanceFrame;
                         isStopped = true;
                     }
                 } else if (gamepad.LTrigger_N == 0){
@@ -58,6 +58,7 @@ namespace TAS {
                 ProcessInputs();
             };
 
+            Mode = Modes.Advance;
             X.StartPolling(gamepad);
             // End of init
         }
@@ -120,7 +121,7 @@ namespace TAS {
             Manager.Start();
             for (;;) {
                 Console.WriteLine(Manager.GetInput());
-                System.Threading.Thread.Sleep(1000);
+                System.Threading.Thread.Sleep(1000/60);
             }
             Manager.Stop();
         }
