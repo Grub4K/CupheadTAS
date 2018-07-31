@@ -1,120 +1,128 @@
 using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.IO;
-using System.Text;
-using J2i.Net.XInputWrapper;
+using XInput.Wrapper;
+using System.Collections.Generic;
 
 namespace TAS {
     class Manager {
-        private InputRecorder recorder = new InputRecorder();
-        private InputPlayer player = new InputPlayer();
-        private State state = State.None;
-    	public XboxController xbox;
-        public Manager() {
-            xbox = XboxController.RetrieveController(0);
-            XboxController.UpdateFrequency = 30;
-            XboxController.StartPolling();
-            new Task(UpdateStateAsync).Start();
+        private enum Modes {
+            AdvanceSlow,
+            AdvanceFrame,
+            Advance
         }
-
-        private void UpdateStateAsync() {
-            for (;;) {
-                if (xbox.IsRightStickPressed && state != State.Recording) {
-                    state = (state == State.Replaying)? State.None : State.Replaying;
-                    while (xbox.IsRightStickPressed) {}
-                }
-                if (xbox.IsLeftStickPressed && state != State.Replaying) {
-                    state = (state == State.Recording)? State.None : State.Recording;
-                    while (xbox.IsLeftStickPressed) {}
-                }
+        private static X.Gamepad gamepad;
+        private static X.Gamepad.GamepadButtons input;
+        private static bool LTriggerHeld, RTriggerHeld, isStopped;
+        private static Modes Mode;
+        //static GamepadState state;
+        static Manager() {
+            if (!X.IsAvailable) {
+                throw new FileNotFoundException("XInput1_4.dll cannot be loaded.");
             }
-        }
+            gamepad = X.Gamepad_1;
+            X.Gamepad.Capability caps = gamepad.Capabilities;
 
-        private void UpdateModeAsync() {
-            for (;;) {
-                if (xbox.IsRightStickPressed && state != State.Recording) {
-                    state = (state == State.Replaying)? State.None : State.Replaying;
-                    while (xbox.IsRightStickPressed) {}
-                }
-                if (xbox.IsLeftStickPressed && state != State.Replaying) {
-                    state = (state == State.Recording)? State.None : State.Recording;
-                    while (xbox.IsLeftStickPressed) {}
-                }
-            }
-        }
+            gamepad.ConnectionChanged += (o, i) => {
+                // Give short haptical feedback to signal initialization
+                gamepad.FFB_RightMotor(1f, 250);
+            };
 
-        public void Testing() {
-            for (;;) {
-                if (state == State.Replaying) {
-                    player.Load("Cuphead.tas");
-                    player.Reset();
-                    Console.WriteLine("Replaying");
-                    while (player.MoveNext() && state == State.Replaying) {
-                        Console.WriteLine(player.Current);
-                        System.Threading.Thread.Sleep(100);
+            gamepad.StateChanged += (o, i) => {
+                if (!LTriggerHeld && (gamepad.LTrigger_N != 0)) {
+                    LTriggerHeld = true;
+                    if (Mode != Modes.Advance) {
+                        Mode = Modes.Advance;
+                        isStopped = false;
+                    } else {
+                        Mode =  Modes.AdvanceFrame;
+                        isStopped = true;
                     }
-                    state = State.None;
-                    Console.WriteLine("Ended Replay");
-                } else if (state == State.Recording) {
-                    recorder.Reset();
-                    Console.WriteLine("Recording");
-                    while (state == State.Recording) {
-                        while (!xbox.IsLeftShoulderPressed){
-                            if (state != State.Recording) {
-                                goto end_recording;
-                            }
-                        }
-
-                        recorder.Add(GetActions());
-
-                        while (xbox.IsLeftShoulderPressed && state == State.Recording){}
-                    }
-                    end_recording:
-                    recorder.WriteFile("new_Cuphead.tas");
-                    Console.WriteLine("Ended Recording");
+                } else if (gamepad.LTrigger_N == 0){
+                    LTriggerHeld = false;
                 }
+                if (!RTriggerHeld && (gamepad.RTrigger_N != 0)) {
+                    RTriggerHeld = true;
+                    Mode = Modes.AdvanceFrame;
+                    isStopped = false;
+                } else if (gamepad.RTrigger_N == 0){
+                    RTriggerHeld = false;
+                }
+                if (gamepad.LStick_up) {
+                    event_Switch(Controller.Modes.Recording);
+                    isStopped = true;
+                }
+                if (gamepad.RStick_up) {
+                    event_Switch(Controller.Modes.Replaying);
+                    isStopped = false;
+                }
+                ProcessInputs();
+            };
+
+            X.StartPolling(gamepad);
+            // End of init
+        }
+
+        private static void event_Switch(Controller.Modes mode) {
+            Controller.Mode = (Controller.Mode == mode)? Controller.Modes.None : mode;
+        }
+
+        private static void ProcessInputs() {
+            input = (X.Gamepad.GamepadButtons)0
+                | (gamepad.A_down          ? X.Gamepad.GamepadButtons.A          : 0)
+                | (gamepad.B_down          ? X.Gamepad.GamepadButtons.B          : 0)
+                | (gamepad.X_down          ? X.Gamepad.GamepadButtons.X          : 0)
+                | (gamepad.Y_down          ? X.Gamepad.GamepadButtons.Y          : 0)
+                | (gamepad.Dpad_Down_down  ? X.Gamepad.GamepadButtons.Dpad_Down  : 0)
+                | (gamepad.Dpad_Up_down    ? X.Gamepad.GamepadButtons.Dpad_Up    : 0)
+                | (gamepad.Dpad_Left_down  ? X.Gamepad.GamepadButtons.Dpad_Left  : 0)
+                | (gamepad.Dpad_Right_down ? X.Gamepad.GamepadButtons.Dpad_Right : 0)
+                | (gamepad.Start_down      ? X.Gamepad.GamepadButtons.Start      : 0)
+                | (gamepad.LBumper_down    ? X.Gamepad.GamepadButtons.LBumper    : 0)
+                | (gamepad.RBumper_down    ? X.Gamepad.GamepadButtons.RBumper    : 0);
+        }
+
+        public static X.Gamepad.GamepadButtons GetInput(){
+            while (isStopped) {
+                System.Threading.Thread.Sleep(20);
             }
+            if (Mode == Modes.AdvanceFrame) {
+                isStopped = true;
+            }
+            if (Mode == Modes.AdvanceSlow) {
+                System.Threading.Thread.Sleep(100);
+            }
+            // Advance
+            switch (Controller.Mode) {
+                case Controller.Modes.Recording:
+                    Controller.Add(input);
+                    break;
+                case Controller.Modes.Replaying:
+                    if (Controller.MoveNext()) {
+                        input = Controller.Current;
+                    } else {
+                        Controller.Mode = Controller.Modes.None;
+                    }
+                    break;
+            }
+            return input;
         }
 
-        private Actions GetActions(){
-            Actions actions = Actions.None
-                | (xbox.IsAPressed?         Actions.Jump   : 0)
-                | (xbox.IsBPressed?         Actions.Ex     : 0)
-                | (xbox.IsXPressed?         Actions.Attack : 0)
-                | (xbox.IsYPressed?         Actions.Change : 0)
-                | (xbox.IsDPadDownPressed?  Actions.Down   : 0)
-                | (xbox.IsDPadLeftPressed?  Actions.Left   : 0)
-                | (xbox.IsDPadRightPressed? Actions.Right  : 0)
-                | (xbox.IsDPadUpPressed?    Actions.Up     : 0)
-                | (xbox.IsStartPressed?     Actions.Start  : 0);
-            //    | (xbox.IsLeftStickPressed? Actions.Analog : 0);
-            return actions;
+        public static void Start() {
+            X.StartPolling(gamepad);
         }
 
-        private enum State {
-        	None,
-        	Replaying,
-        	Recording
-        }
-
-        private enum Mode {
-            None,
-        	FrameStep,
-            Slowdown
+        public static void Stop() {
+            X.StopPolling();
         }
     }
-
     class Program {
-        public static void Main(string[] args) {
-            Manager manager = new Manager();
-            void Separate() { System.Console.WriteLine("***********************"); }
-
-            Separate();
-            manager.Testing();
-            Separate();
-
-            return;
+        public static void Main(String[] args) {
+            Manager.Start();
+            for (;;) {
+                Console.WriteLine(Manager.GetInput());
+                System.Threading.Thread.Sleep(1000);
+            }
+            Manager.Stop();
         }
     }
 }
