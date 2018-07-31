@@ -3,10 +3,9 @@ Simple TAS tool for the game Cuphead
 
 ## TASing the game
 
-
 Input             | Action
-:----------------:|-----------------------:
-Left Bumper       | Go back to normal Speed
+:----------------:|---------------------:
+Left Bumper       | Switch Normal/Step
 Right Bumper      | Advance one Frame
 Left Stick press  | Enter Recording mode
 Right Stick press | Enter Playback mode
@@ -21,9 +20,7 @@ If you want to manually edit the file:
 
  - `Number[,char][,char][...]`
     - This sends the corresponding inputs for `Number` frames
-    - `X` will read the next character as an analog stick angle (`0`-`360`)
-    -  Angle for down is `0` and its increasing clockwise (left -> `90`)
- - `Read,InputFile.tas[,startLine[,stopLine]]`
+ - `Read,InputFile.tas[,[startLine][,stopLine]]`
     - Reads `InputFile.tas` and adds its contents to the Input queue
     - This Version supports relative paths for each file
     - `startLine`, when specified, will start reading at the specified line
@@ -50,12 +47,12 @@ char|In-game action
 `A` | Attack
 `E` | Ex
 `L` | Lock
-`X` | Analog Stick
 </td></tr>
+<tr></tr>
 <tr><td>
 Example File:
 
-```tas
+```
 #!Cuphead any%
 #!:Overworld.tas
 
@@ -65,7 +62,7 @@ Example File:
   45
 # Skip intro
    1,S
-Read,Overworld.tas,2,70
+Read,Overworld.tas,,70
 
 *** 4
 # End of TAS
@@ -73,7 +70,7 @@ Read,Overworld.tas,2,70
 </td><td>
 Best practices:
 
-```tas
+```
 File header
 Explain what TAS is doing
 #!Cuphead any%
