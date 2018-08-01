@@ -170,7 +170,28 @@ namespace TAS {
                         // Recursive call of file reading
         				ReadFile(fileName, relativePath, newStartLine, newLastLine);
         			} else {
-                        Input input = new Input(line);
+                        // Input line
+                        int tempFrames;
+                        Input input = new Input();
+                        if (line.StartsWith("***")) {
+                            // Set slowdown value as frames
+                            int.TryParse(line.Substring(3), out tempFrames);
+                            input.Slowdown = true;
+                        } else {
+                            // Tokenize line
+                            string[] strTokens = line.Split(',');
+                            // Set frame count for input
+                            int.TryParse(strTokens.FirstOrDefault(), out tempFrames);
+                            X.Gamepad.GamepadButtons tempActions;
+                            // Process each entered character afterwards
+                            foreach (var strChar in strTokens.Skip(1)) {
+                                // Check insensitive for the value
+                                if  (Collection.Convert(strChar, out tempActions)) {
+                                    input.Actions |= tempActions;
+                                }
+                            }
+                        }
+                        input.Frames = tempFrames;
                         if (input.Frames != 0) {
                         	inputs.Add(input);
                         }

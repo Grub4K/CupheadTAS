@@ -4,7 +4,7 @@ using XInput.Wrapper;
 using System.Collections.Generic;
 
 namespace TAS {
-    class Manager {
+    static class Manager {
         private enum Modes {
             AdvanceSlow,
             AdvanceFrame,
@@ -102,6 +102,7 @@ namespace TAS {
                         input = Controller.Current;
                     } else {
                         Controller.Mode = Controller.Modes.None;
+                        ProcessInputs();
                     }
                     break;
             }

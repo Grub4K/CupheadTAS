@@ -7,27 +7,9 @@ namespace TAS {
     internal class Input {
         public int Frames { get; set; }
         public X.Gamepad.GamepadButtons Actions { get; set; }
-        public bool Slowdown { get; private set; }
+        public bool Slowdown { get; set; }
         // TODO add field for SegInfo
         public Input() {  }
-        public Input(string line) {
-            // Tokenize line
-            string[] strTokens = line.Split(',');
-            if (line.StartsWith("***")) {
-                Slowdown = true;
-                strTokens[0] = strTokens[0].Remove(0, 3);
-            }
-            // Set frame count for input
-            int.TryParse(strTokens.FirstOrDefault(), out int tempFrames);
-            Frames = tempFrames;
-            // Process each entered character afterwards
-            foreach (var strChar in strTokens.Skip(1)) {
-                // Check insensitive for the value
-                if  (Collection.Convert(strChar, out X.Gamepad.GamepadButtons tempActions)) {
-                    Actions |= tempActions;
-                }
-            }
-        }
 
         private string ActionsToString() {
             StringBuilder sb = new StringBuilder();
