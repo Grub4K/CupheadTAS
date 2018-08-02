@@ -117,14 +117,4 @@ namespace TAS {
             X.StopPolling();
         }
     }
-    class Program {
-        public static void Main(String[] args) {
-            Manager.Start();
-            for (;;) {
-                Console.WriteLine(Manager.GetInput());
-                System.Threading.Thread.Sleep(1000/60);
-            }
-            Manager.Stop();
-        }
-    }
 }
